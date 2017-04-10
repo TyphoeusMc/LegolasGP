@@ -1,0 +1,130 @@
+step6 状态转换功能实现，修改Input_Handle，捕获键盘输入，作相应修改
+	但是我们发现，在该函数处理WM_KEYDOWN消息是跟当前状态相关的，比如当前状态是Level1，按键2（切换到状态2）才有意义，而按键1没有意义，不处理
+      一个方法是，根据当前状态判定哪些消息处理哪些不处理，这个会导致输入处理庞大，而且功能与状态函数Update有重叠
+      另一个方法，建立输入截获机制，在Input_Handle只获取消息，不处理，消息处理部分交给每个状态的Update
+
+	我们采用第二种方法
+
+1）在Input.h里增加全局枚举类型
+
+enum{
+	KeyR,
+	KeyESC,
+	Key1,
+	Key2,
+	KeyUp,
+	KeyDown,
+	KeyLeft,
+	KeyRight,
+	KeyNUM    // 总放在最后一个
+};	
+boolean KeyPressed[KeyNUM];
+
+2）在Input.h里增加全局函数，重置KeyPressed
+
+// 输入状态重置
+void Input_Initialize(void);
+
+3）修改Input.c，新增void Input_Initialize(void)的定义
+
+void Input_Initialize()
+{
+	int i;
+	for(i=0; i<KeyNUM; i++)
+	{
+		KeyPressed[i] = FALSE;
+	}
+}
+
+4）修改Input.c中的Input_Handle函数的以下部分
+		case WM_KEYDOWN:
+			if(wParam == VK_ESCAPE)
+			{
+				KeyPressed[KeyESC] = TRUE;
+				fprintf(fp,"Input:ESC\n");
+			}
+			if(wParam == 'R')
+			{
+				KeyPressed[KeyR] = TRUE;
+				fprintf(fp,"Input:R\n");
+			}
+			if(wParam == '1')
+			{
+				KeyPressed[Key1] = TRUE;
+				fprintf(fp,"Input:1\n");
+			}
+			if(wParam == '2')
+			{
+				KeyPressed[Key2] = TRUE;
+				fprintf(fp,"Input:2\n");
+			}
+			if(wParam == VK_UP)
+				KeyPressed[KeyUp] = TRUE;
+			if(wParam == VK_DOWN)
+				KeyPressed[KeyDown] = TRUE;
+			if(wParam == VK_LEFT)
+				KeyPressed[KeyLeft] = TRUE;
+			if(wParam == VK_RIGHT)
+				KeyPressed[KeyRight] = TRUE;
+			break;
+
+另外，修改以下，防止不通过正常途径关闭窗口，则无法正确free及Unload资源
+		case WM_DESTROY:
+			KeyPressed[KeyESC] = TRUE;
+			fprintf(fp,"Input:Forcing Shut Down\n");
+			break;
+
+5）修改状态Update函数
+
+Level1.c的
+void Update1(void)
+{
+	// 状态切换
+	if(KeyPressed[KeyR])
+		Next = GS_Restart;
+	if(KeyPressed[KeyESC])
+		Next = GS_Quit;
+	if(KeyPressed[Key2])
+		Next = GS_L2;
+
+	// 对象移动
+	if(KeyPressed[KeyUp])
+		obj1Y += 0.5f;
+	else
+	if(KeyPressed[KeyDown])
+		obj1Y -= 0.5f;
+	if(KeyPressed[KeyLeft])
+		obj1X -= 0.5f;
+	else
+	if(KeyPressed[KeyRight])
+		obj1X += 0.5f;
+
+	// 输入重置
+	Input_Initialize();
+
+	// 签到
+	fprintf(fp, "Level1:Update\n");
+}
+
+Level2.c的
+void Update2(void)
+{
+	// 状态切换
+	if(KeyPressed[KeyR])
+		Next = GS_Restart;
+	if(KeyPressed[KeyESC])
+		Next = GS_Quit;
+	if(KeyPressed[Key1])
+		Next = GS_L1;
+
+	// 输入重置
+	Input_Initialize();
+
+	// 签到
+	fprintf(fp, "Level2:Update\n");
+}
+
+Step6结束，全部结束
+
+
+

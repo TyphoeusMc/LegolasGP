@@ -1,0 +1,6 @@
+step5 修改关卡2，显示不一样的三角形，过程同level1.c的类似。
+
+将WinMain里的GSM_Initialize(GS_L1)改成GSM_Initialize(GS_L2)，我们将看到第2关卡的显示;
+
+
+

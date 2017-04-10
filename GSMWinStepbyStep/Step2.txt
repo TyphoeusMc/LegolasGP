@@ -1,0 +1,377 @@
+step2 在GSMPre的流程基础上，完成一个显示窗口的功能（这一步比较繁琐，做好心理准备）
+
+1）新建/打开源文件main.c
+
+2）复制GSMPre的main.c到新建的文件中，先修改注释（好习惯），注释掉WinMain除System_Initialize和System_Exit以外的语句。
+
+3）创建窗口：
+
+   a）不是WinMain？，改....
+   b) 什么地方创建窗口呢？GSMPre的流程简洁漂亮，不想破坏它，创建窗口就应该放到系统初始化去
+   c) 创建窗口需要用到WinMain的第1和第4个参数，因此需要修改System_Initialize的声明和定义
+   d) 复制Win32AlphaSingleObj的WinMain函数中Alpha系统初始化的部分，并修改sysInitInfo.mCreateWindow = 1如下：
+
+      /* Alpha系统定义 */
+	AESysInitInfo sysInitInfo;
+	sysInitInfo.mAppInstance		= hInstance;	// WinMain的第1个参数
+	sysInitInfo.mShow				= nCmdShow;		// WinMain的第4个参数
+	sysInitInfo.mWinWidth			= 800; 
+	sysInitInfo.mWinHeight			= 600;
+	sysInitInfo.mCreateConsole		= 1;			// 是否需要打开控制台
+	sysInitInfo.mCreateWindow		= 1;			// 是否需要创建窗口
+	sysInitInfo.mMaxFrameRate		= 60;			// 设置帧率（如果使用Alpha的帧率控制功能的话）
+	sysInitInfo.mpWinCallBack		= NULL;			
+	sysInitInfo.mClassStyle			= CS_HREDRAW | CS_VREDRAW;		// 窗口类定义的重绘方式									
+	sysInitInfo.mWindowStyle		= WS_OVERLAPPEDWINDOW;			
+
+	// Alpha系统初始化 及 模块重置
+	if(0 == AESysInit (&sysInitInfo))
+		printf("System Init Failed!\n");
+	AESysReset();
+
+   e) Alpha帮助创建窗口了，因此不用自己定义窗口类，创建窗口实例
+	但是，回调函数要自己写，放在哪里呢？它实际上就是我们的Input子系统，授予它一个新的名字Input_Handle
+	将上面的sysInitInfo.mpWinCallBack		= NULL;	修改成sysInitInfo.mpWinCallBack		= Input_Handle
+      
+	同时要将Input_Handle改造成回调函数的样子（参数，返回值）
+      复制Win32AlphaSingleObj的WndProc函数内容到Input_Handle
+
+      在main.c的流程中注释掉Input_Handle，因为这是个回调函数，不需要主动调用
+
+Step2结束。以上过程省略了部分操作，如修改项目属性（常规-去掉unicode，c/c++预处理部分解决fopen问题），部分include，及包含library的语句，因此请参看以下源码
+
+A）
+/* Project:		GSMWinStep
+   File Name:	main.c
+   Author:		刘芳
+   Date:		...
+   Purpose:		...
+*/
+
+#include <Windows.h>
+#include "System.h"
+#include "GameStateList.h"
+#include "GameStateManager.h"
+#include "Input.h"
+
+//------------------------------------------------------------------------------
+// Private Consts:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Private Structures:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Public Variables:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Private Variables:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Private Function Declarations:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Public Functions:
+//------------------------------------------------------------------------------
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+{
+	// System Initialize
+	System_Initialize(hInstance, nCmdShow);
+
+	/*// GSM Initialize
+	GSM_Initialize(GS_L1);
+
+	// Game Flow
+	while(Current != GS_Quit)
+	{
+		if(Current == GS_Restart)
+		{
+			Current = Previous;
+			Next = Previous;
+		}
+		else
+		{
+			// GSM Update
+			GSM_Update(Current);
+			pLoad();
+		}
+
+		pIni();
+
+		// Game Loop
+		while(Current == Next)
+		{
+			//Input_Handle();  回调函数
+			pUpdate();
+			pDraw();
+		}
+
+		pFree();
+
+		if(Next != GS_Restart)
+			pUnload();
+
+		Previous = Current;
+		Current = Next;
+	}*/
+
+	// System Exit
+	System_Exit();
+
+	return 0;
+}
+
+//------------------------------------------------------------------------------
+// Private Functions:
+//------------------------------------------------------------------------------
+
+B)
+/* Project:		GSMWinStep
+   File Name:	System.h
+   Author:		刘芳
+   Date:		2015-9-15
+   Purpose:		系统管理器
+*/
+
+#ifndef _System
+#define _System
+
+#include <stdio.h>
+#include <Windows.h>
+
+//------------------------------------------------------------------------------
+// Typedef:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Public Consts:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Public Structures:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Public Variables:
+//------------------------------------------------------------------------------
+FILE *fp;   // Output.txt
+
+//------------------------------------------------------------------------------
+// Public Functions:
+//------------------------------------------------------------------------------
+
+// 系统初始化
+extern int System_Initialize(HINSTANCE, int);
+
+// 系统退出
+extern void System_Exit(void);
+
+#endif
+
+C)
+/* Project:		GSMWinStep
+   File Name:	System.c
+   Author:		刘芳
+   Date:		
+   Purpose:		系统管理器 */
+
+#include "System.h"
+#include "AEEngine.h"
+#include "Input.h"
+
+#pragma comment (lib, "Alpha_Engine.lib")
+
+//------------------------------------------------------------------------------
+// Private Consts:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Private Structures:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Public Variables:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Private Variables:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Private Function Declarations:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Public Functions:
+//------------------------------------------------------------------------------
+// 系统初始化
+int System_Initialize(HINSTANCE hInstance, int nCmdShow)
+{
+	// 利用Alpha创建窗口
+	AESysInitInfo sysInitInfo;
+	sysInitInfo.mAppInstance		= hInstance;	// WinMain的第1个参数
+	sysInitInfo.mShow				= nCmdShow;		// WinMain的第4个参数
+	sysInitInfo.mWinWidth			= 800; 
+	sysInitInfo.mWinHeight			= 600;
+	sysInitInfo.mCreateConsole		= 1;			// 是否需要打开控制台
+	sysInitInfo.mCreateWindow		= 1;			// 是否需要创建窗口
+	sysInitInfo.mMaxFrameRate		= 60;			// 设置帧率（如果使用Alpha的帧率控制功能的话）
+	sysInitInfo.mpWinCallBack		= Input_Handle;			
+	sysInitInfo.mClassStyle			= CS_HREDRAW | CS_VREDRAW;		// 窗口类定义的重绘方式									
+	sysInitInfo.mWindowStyle		= WS_OVERLAPPEDWINDOW;			// 窗口风格，取值：WS_POPUP | WS_VISIBLE | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+	// Alpha系统初始化 及 模块重置
+	if(0 == AESysInit (&sysInitInfo))
+		return -1;
+	AESysReset();
+
+	// 打开签到表
+	if ((fp = fopen("Output.txt","w")) == NULL)
+	{
+		printf("Cannot find file Output.txt\n");
+		return -1;
+	}
+	// 签到
+	fprintf(fp,"System:Initialize\n");
+
+	return 0;
+}
+
+// 系统退出
+void System_Exit(void)
+{
+	// Alpha系统退出
+	AESysExit();
+
+	// 签到
+	fprintf(fp,"System:Exit\n");
+	fclose(fp);
+}
+
+D)
+/* Project:		GSMWinStep
+   File Name:	Input.h
+   Author:		刘芳
+   Date:		
+   Purpose:		输入模块  */
+
+#ifndef _Input
+#define _Input
+
+//------------------------------------------------------------------------------
+// Typedef:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Public Consts:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Public Structures:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Public Variables:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Public Functions:
+//------------------------------------------------------------------------------
+
+// 处理输入
+LRESULT CALLBACK Input_Handle(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+#endif
+
+E)
+/* Project:		GSMWinStep
+   File Name:	Input.c
+   Author:		刘芳
+   Date:		2015-9-15
+   Purpose:		输入模块  */
+
+#include "System.h"
+
+//------------------------------------------------------------------------------
+// Private Consts:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Private Structures:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Public Variables:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Private Variables:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Private Function Declarations:
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Public Functions:
+//------------------------------------------------------------------------------
+LRESULT CALLBACK Input_Handle(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	HDC dc;           // 设备
+	PAINTSTRUCT ps;   // 重绘结构
+
+	// 签到
+	//fprintf(fp,"Input:Handle\n");
+
+	switch (msg)
+	{
+		//  窗口创建
+		case WM_CREATE:
+			break;
+
+		case WM_LBUTTONDOWN:
+			//GS_Running = 0;
+			break;
+		
+		case WM_MOUSEMOVE:
+			break;
+
+		// 重绘
+		case WM_PAINT:
+			dc = BeginPaint(hWnd, &ps);
+			EndPaint(hWnd, &ps);
+			break;
+
+		// 窗口关闭
+		case WM_DESTROY:
+			break;
+
+		case WM_KEYDOWN:
+			//if(wParam == VK_ESCAPE)
+				//GS_Running = 0;
+			break;
+
+		// 窗口发生移动
+		case WM_MOVE:
+			break;
+		
+		// 调用默认窗口过程
+		default:
+			return DefWindowProc(hWnd, msg, wParam, lParam);
+	}
+
+	return 0;
+}
+
+//------------------------------------------------------------------------------
+// Private Functions:
+//------------------------------------------------------------------------------
+
+
+   
+	
+
+	

@@ -1,0 +1,51 @@
+step1 准备工作
+
+1）首先确认手边有以下三个工程项目
+
+项目1：Win32AlphaSingleObj（已提供）
+项目2：GSMPre（自行完成的练习一）
+项目3：Practice2-Skeleton（已提供，或按照以下步骤新建项目）
+
+/*  使用Practice2-Skeleton项目的，可以跳过以下步骤  */
+
+2）创建Windows应用程序，勾选空项目（我给的项目名称是GSMWinStep）
+
+3）复制以下文件到GSMWinStep项目所在目录：
+
+   a）从Win32AlphaSingleObj目录中，复制AlphaEngine有关的文件共18个
+   3DPipelineTools.h
+   以AE开头的，后缀名称为.h的文件共14个
+   Alpha_Engine.dll
+   Alpha_Engine.lib
+   glew32.dll
+
+   b）从GSMPre目录中，复制与状态控制有关的文件共12个
+   GameStateList.h
+   GameStateManager.c
+   GameStateManager.h
+   Input.c
+   Input.h
+   Level1.c
+   Level1.h
+   Level2.c
+   Level2.h
+   Output.txt
+   System.c
+   System.h
+
+4）在项目GSMWinStep中添加现有项：导入头文件和源文件如下（注意，导入的文件是需要在本项目中修改的，不代表项目只用了这些文件）
+   GameStateList.h
+   GameStateManager.c
+   GameStateManager.h
+   Input.c
+   Input.h
+   Level1.c
+   Level1.h
+   Level2.c
+   Level2.h
+   System.c
+   System.h
+
+Step1结束。温馨提示：GSMPre和Win32AlphaSingleObj在后面的步骤里还会用到。
+
+   
